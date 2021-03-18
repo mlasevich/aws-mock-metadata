@@ -31,7 +31,7 @@ type App struct {
 	Verbose               bool   `json:"verbose"`
 	VpcID                 string `json:"vpc-id"`
 	NoSchemeHostRedirects bool   `json:"no-scheme-redirects"`
-	ConfigFile            string
+	ConfigFile            string `json:"config"`
 }
 
 func main() {
@@ -44,7 +44,8 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	}
 	conf, _ := json.MarshalIndent(app, "", "  ")
-	log.Debugf("App config is: \n%s\n", conf)
+
+	log.Debugf("App config is: \n%s", conf)
 	app.StartServer()
 }
 
@@ -79,16 +80,15 @@ func (app *App) addFlags(fs *pflag.FlagSet) {
 }
 
 func (app *App) loadFromFile() {
-	log.Infof("Loading config from file %s\n", app.ConfigFile)
+	log.Debugf("Loading config from file %s", app.ConfigFile)
 	data, err := ioutil.ReadFile(app.ConfigFile)
 	if err != nil {
-		log.Infof("Failed to load data from conf file %s: %s\n", app.ConfigFile, err)
+		log.Infof("Failed to load conf: %+v", err)
 		return
 	}
-	log.Debugf("JSON Data: \n%s\n\n", data)
 	err = json.Unmarshal([]byte(data), &app)
 	if err != nil {
-		log.Infof("Failed to parse data from conf file %s: %s\n", app.ConfigFile, err)
+		log.Infof("Failed to parse conf file %s: %s", app.ConfigFile, err)
 	}
 }
 

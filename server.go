@@ -515,7 +515,7 @@ func (app *App) roleHandler(w http.ResponseWriter, r *http.Request) {
 	svc := sts.New(session.New(), &aws.Config{LogLevel: aws.LogLevel(2)})
 	resp, err := svc.AssumeRole(&sts.AssumeRoleInput{
 		RoleArn:         aws.String(app.RoleArn),
-		RoleSessionName: aws.String("aws-mock-metadata"),
+		RoleSessionName: aws.String(app.Hostname),
 	})
 	if err != nil {
 		log.Errorf("Error assuming role %+v", err)

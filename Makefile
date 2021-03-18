@@ -31,6 +31,10 @@ watch:
 commit-hook:
 	cp dev/commit-hook.sh .git/hooks/pre-commit
 
+build-linux:
+	gofmt -w=true .
+	GOOS=linux GOARCH=amd64 go build -o bin/aws-mock-metadata-linux $(GOBUILD_VERSION_ARGS) github.com/jtblin/aws-mock-metadata
+
 cross:
 	 CGO_ENABLED=0 GOOS=linux go build -ldflags "-s" -a -installsuffix cgo -o bin/aws-mock-metadata-linux .
 
