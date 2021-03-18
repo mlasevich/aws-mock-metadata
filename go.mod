@@ -9,5 +9,6 @@ require (
 	github.com/gorilla/context v1.1.1
 	github.com/gorilla/mux v1.7.4
 	github.com/jmespath/go-jmespath v0.3.0
+	github.com/jstemmer/go-junit-report v0.9.1 // indirect
 	github.com/spf13/pflag v1.0.5
 )
