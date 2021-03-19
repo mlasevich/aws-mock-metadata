@@ -2,6 +2,7 @@ VERSION_VAR := main.VERSION
 REPO_VERSION := $(shell git describe --always --dirty --tags)
 GOBUILD_VERSION_ARGS := -ldflags "-X $(VERSION_VAR)=$(REPO_VERSION)"
 GIT_HASH := $(shell git rev-parse --short HEAD)
+APP_NAME := aws-mock-metadata
 
 include .env
 
@@ -13,7 +14,7 @@ setup:
 
 build: *.go
 	gofmt -w=true .
-	go build -o bin/aws-mock-metadata $(GOBUILD_VERSION_ARGS) github.com/jtblin/aws-mock-metadata
+	go build -o bin/$(APP_NAME) $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(APP_NAME)
 
 test: build
 	go test
@@ -33,20 +34,20 @@ commit-hook:
 
 build-linux:
 	gofmt -w=true .
-	GOOS=linux GOARCH=amd64 go build -o bin/aws-mock-metadata-linux $(GOBUILD_VERSION_ARGS) github.com/jtblin/aws-mock-metadata
+	GOOS=linux GOARCH=amd64 go build -o bin/$(APP_NAME)-linux $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(APP_NAME)
 
 cross:
-	 CGO_ENABLED=0 GOOS=linux go build -ldflags "-s" -a -installsuffix cgo -o bin/aws-mock-metadata-linux .
+	 CGO_ENABLED=0 GOOS=linux go build -ldflags "-s" -a -installsuffix cgo -o bin/$(APP_NAME)-linux .
 
 docker: cross
-	 docker build -t jtblin/aws-mock-metadata:$(GIT_HASH) .
+	 docker build -t jtblin/$(APP_NAME):$(GIT_HASH) .
 
 version:
 	@echo $(REPO_VERSION)
 
 run:
 	@AWS_ACCESS_KEY_ID=$(AWS_ACCESS_KEY_ID) AWS_SECRET_ACCESS_KEY=$(AWS_SECRET_ACCESS_KEY) \
-		AWS_SESSION_TOKEN=$(AWS_SESSION_TOKEN) bin/aws-mock-metadata --availability-zone=$(AVAILABILITY_ZONE) \
+		AWS_SESSION_TOKEN=$(AWS_SESSION_TOKEN) bin/$(APP_NAME) --availability-zone=$(AVAILABILITY_ZONE) \
 		--instance-id=$(INSTANCE_ID) --hostname=$(HOSTNAME) --role-name=$(ROLE_NAME) --role-arn=$(ROLE_ARN) \
 		--app-port=$(APP_PORT)
 
@@ -64,11 +65,11 @@ run-docker:
 		--vpc-id=$(VPC_ID) --private-ip=$(PRIVATE_IP)
 
 clean:
-	rm -f bin/aws-mock-metadata*
+	rm -f bin/$(APP_NAME)*
 	docker rm $(shell docker ps -a -f 'status=exited' -q) || true
 	docker rmi $(shell docker images -f 'dangling=true' -q) || true
 
 release: docker
-	docker push jtblin/aws-mock-metadata:$(GIT_HASH)
-	docker tag -f jtblin/aws-mock-metadata:$(GIT_HASH) jtblin/aws-mock-metadata:latest
-	docker push jtblin/aws-mock-metadata:latest
+	docker push jtblin/$(APP_NAME):$(GIT_HASH)
+	docker tag -f jtblin/$(APP_NAME):$(GIT_HASH) jtblin/$(APP_NAME):latest
+	docker push jtblin/$(APP_NAME):latest

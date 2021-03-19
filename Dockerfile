@@ -1,5 +1,5 @@
 FROM golang:1.14.1-alpine3.11
-MAINTAINER Jerome Touffe-Blin <jtblin@gmail.com>
+LABEL maintainer="Jerome Touffe-Blin <jtblin@gmail.com>"
 RUN apk add --no-cache git
 WORKDIR /go/src/app
 COPY . .
