@@ -47,159 +47,6 @@ func (app *App) apiVersionPrefixes() []string {
 	}
 }
 
-// NewServer creates a new http server (starting handled separately to allow test suites to reuse)
-func (app *App) NewServer() *mux.Router {
-	r := mux.NewRouter()
-	r.Handle("", appHandler(app.rootHandler))
-	r.Handle("/", appHandler(app.rootHandler))
-
-	for _, v := range app.apiVersionPrefixes() {
-		app.versionSubRouter(r.PathPrefix(fmt.Sprintf("/%s", v)).Subrouter(), v)
-	}
-
-	r.Handle("/{path:.*}", appHandler(app.notFoundHandler))
-
-	return r
-}
-
-// Provides the versioned (normally 1.0, YYYY-MM-DD or latest) prefix routes
-// TODO: conditional out the namespaces that don't exist on selected API versions
-func (app *App) versionSubRouter(sr *mux.Router, version string) {
-	//sr.Handle("", appHandler(app.trailingSlashRedirect))
-	sr.Handle("", appHandler(app.secondLevelHandler))
-	sr.Handle("/", appHandler(app.secondLevelHandler))
-
-	// For IMDSv2, https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html
-	a := sr.PathPrefix("/api").Subrouter()
-	a.Handle("", appHandler(app.notFoundHandler))
-	a.Handle("/", appHandler(app.notFoundHandler))
-	a.Handle("/token", appHandler(app.apiTokenHandler)).Methods("PUT")
-	// TODO: return 405 for everything but PUT
-	/*
-		HTTP/1.1 405 Not Allowed
-		Allow: OPTIONS, PUT
-		Content-Length: 0
-		Date: Tue, 07 Apr 2020 03:56:56 GMT
-		Server: EC2ws
-		Connection: close
-		Content-Type: text/plain
-	*/
-	a.Handle("/token", appHandler(app.apiTokenNotPutHandler)).Methods("GET", "POST", "DELETE")
-
-	d := sr.PathPrefix("/dynamic").Subrouter()
-	d.Handle("", appHandler(app.trailingSlashRedirect))
-	d.Handle("/", appHandler(app.dynamicHandler))
-
-	ii := d.PathPrefix("/instance-identity").Subrouter()
-	ii.Handle("", appHandler(app.trailingSlashRedirect))
-	ii.Handle("/", appHandler(app.instanceIdentityHandler))
-	ii.Handle("/document", appHandler(app.instanceIdentityDocumentHandler))
-	ii.Handle("/document/", appHandler(app.instanceIdentityDocumentHandler))
-	ii.Handle("/pkcs7", appHandler(app.instanceIdentityPkcs7Handler))
-	ii.Handle("/pkcs7/", appHandler(app.instanceIdentityPkcs7Handler))
-	ii.Handle("/signature", appHandler(app.instanceIdentitySignatureHandler))
-	ii.Handle("/signature/", appHandler(app.instanceIdentitySignatureHandler))
-
-	m := sr.PathPrefix("/meta-data").Subrouter()
-	m.Handle("", appHandler(app.trailingSlashRedirect))
-	m.Handle("/", appHandler(app.metaDataHandler))
-	m.Handle("/ami-id", appHandler(app.amiIdHandler))
-	m.Handle("/ami-id/", appHandler(app.amiIdHandler))
-	m.Handle("/ami-launch-index", appHandler(app.amiLaunchIndexHandler))
-	m.Handle("/ami-launch-index/", appHandler(app.amiLaunchIndexHandler))
-	m.Handle("/ami-manifest-path", appHandler(app.amiManifestPathHandler))
-	m.Handle("/ami-manifest-path/", appHandler(app.amiManifestPathHandler))
-
-	bdm := m.PathPrefix("/block-device-mapping").Subrouter()
-	bdm.Handle("", appHandler(app.trailingSlashRedirect))
-	bdm.Handle("/", appHandler(app.blockDeviceMappingHandler))
-	bdm.Handle("/ami", appHandler(app.blockDeviceMappingAmiHandler))
-	bdm.Handle("/ami/", appHandler(app.blockDeviceMappingAmiHandler))
-	bdm.Handle("/root", appHandler(app.blockDeviceMappingRootHandler))
-	bdm.Handle("/root/", appHandler(app.blockDeviceMappingRootHandler))
-
-	m.Handle("/hostname", appHandler(app.hostnameHandler))
-	m.Handle("/hostname/", appHandler(app.hostnameHandler))
-
-	i := m.PathPrefix("/iam").Subrouter()
-	i.Handle("", appHandler(app.trailingSlashRedirect))
-	i.Handle("/", appHandler(app.iamHandler))
-	i.Handle("/info", appHandler(app.infoHandler))
-	i.Handle("/info/", appHandler(app.infoHandler))
-	isc := i.PathPrefix("/security-credentials").Subrouter()
-	isc.Handle("", appHandler(app.trailingSlashRedirect))
-	isc.Handle("/", appHandler(app.securityCredentialsHandler))
-	if app.MockInstanceProfile == true {
-		isc.Handle("/"+app.RoleName, appHandler(app.mockRoleHandler))
-		isc.Handle("/"+app.RoleName+"/", appHandler(app.mockRoleHandler))
-	} else {
-		isc.Handle("/"+app.RoleName, appHandler(app.roleHandler))
-		isc.Handle("/"+app.RoleName+"/", appHandler(app.roleHandler))
-	}
-
-	m.Handle("/instance-action", appHandler(app.instanceActionHandler))
-	m.Handle("/instance-action/", appHandler(app.instanceActionHandler))
-	m.Handle("/instance-id", appHandler(app.instanceIDHandler))
-	m.Handle("/instance-id/", appHandler(app.instanceIDHandler))
-	m.Handle("/instance-type", appHandler(app.instanceTypeHandler))
-	m.Handle("/instance-type/", appHandler(app.instanceTypeHandler))
-	m.Handle("/local-hostname", appHandler(app.localHostnameHandler))
-	m.Handle("/local-hostname/", appHandler(app.localHostnameHandler))
-	m.Handle("/local-ipv4", appHandler(app.privateIpHandler))
-	m.Handle("/local-ipv4/", appHandler(app.privateIpHandler))
-	m.Handle("/mac", appHandler(app.macHandler))
-	m.Handle("/mac/", appHandler(app.macHandler))
-
-	me := m.PathPrefix("/metrics").Subrouter()
-	me.Handle("", appHandler(app.trailingSlashRedirect))
-	me.Handle("/", appHandler(app.metricsHandler))
-	me.Handle("/vhostmd", appHandler(app.metricsVhostmdHandler))
-	me.Handle("/vhostmd/", appHandler(app.metricsVhostmdHandler))
-
-	n := m.PathPrefix("/network").Subrouter()
-	n.Handle("", appHandler(app.trailingSlashRedirect))
-	n.Handle("/", appHandler(app.networkHandler))
-	ni := n.PathPrefix("/interfaces").Subrouter()
-	ni.Handle("", appHandler(app.trailingSlashRedirect))
-	ni.Handle("/", appHandler(app.networkInterfacesHandler))
-	nim := ni.PathPrefix("/macs").Subrouter()
-	nim.Handle("", appHandler(app.trailingSlashRedirect))
-	nim.Handle("/", appHandler(app.networkInterfacesMacsHandler))
-	nimaddr := nim.PathPrefix("/" + app.MacAddress).Subrouter()
-	nimaddr.Handle("", appHandler(app.trailingSlashRedirect))
-	nimaddr.Handle("/", appHandler(app.networkInterfacesMacsAddrHandler))
-	nimaddr.Handle("/device-number", appHandler(app.nimAddrDeviceNumberHandler))
-	nimaddr.Handle("/device-number/", appHandler(app.nimAddrDeviceNumberHandler))
-	nimaddr.Handle("/interface-id", appHandler(app.nimAddrInterfaceIdHandler))
-	nimaddr.Handle("/interface-id/", appHandler(app.nimAddrInterfaceIdHandler))
-	// TODO: expand API coverage
-	nimaddr.Handle("/vpc-id", appHandler(app.vpcHandler))
-
-	p := m.PathPrefix("/placement").Subrouter()
-	p.Handle("/availability-zone", appHandler(app.availabilityZoneHandler))
-	p.Handle("/region", appHandler(app.regionHandler))
-
-	m.Handle("/profile", appHandler(app.profileHandler))
-	m.Handle("/profile/", appHandler(app.profileHandler))
-	m.Handle("/public-hostname", appHandler(app.hostnameHandler))
-	m.Handle("/public-hostname/", appHandler(app.hostnameHandler))
-
-	sr.Handle("/{path:.*}", appHandler(app.notFoundHandler))
-	a.Handle("/{path:.*}", appHandler(app.notFoundHandler))
-	d.Handle("/{path:.*}", appHandler(app.notFoundHandler))
-	ii.Handle("/{path:.*}", appHandler(app.notFoundHandler))
-	m.Handle("/{path:.*}", appHandler(app.notFoundHandler))
-	bdm.Handle("/{path:.*}", appHandler(app.notFoundHandler))
-	i.Handle("/{path:.*}", appHandler(app.notFoundHandler))
-	isc.Handle("/{path:.*}", appHandler(app.notFoundHandler))
-	me.Handle("/{path:.*}", appHandler(app.notFoundHandler))
-	n.Handle("/{path:.*}", appHandler(app.notFoundHandler))
-	ni.Handle("/{path:.*}", appHandler(app.notFoundHandler))
-	nim.Handle("/{path:.*}", appHandler(app.notFoundHandler))
-	nimaddr.Handle("/{path:.*}", appHandler(app.notFoundHandler))
-	p.Handle("/{path:.*}", appHandler(app.notFoundHandler))
-}
-
 type appHandler func(http.ResponseWriter, *http.Request)
 
 func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -482,6 +329,12 @@ func (app *App) profileHandler(w http.ResponseWriter, r *http.Request) {
 
 func (app *App) vpcHandler(w http.ResponseWriter, r *http.Request) {
 	write(w, app.VpcID)
+}
+
+func (app *App) placementHandler(w http.ResponseWriter, r *http.Request) {
+	write(w, `
+
+`)
 }
 
 // Credentials represent the security credentials response
