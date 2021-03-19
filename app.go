@@ -115,15 +115,17 @@ func getNetMapAndIP() (string, string, error) {
 				mac = m
 				addrs, err := iface.Addrs()
 				if err == nil {
+					var ipv4Addr net.IP
 					for _, addr := range addrs {
-						switch v := addr.(type) {
-						case *net.IPNet:
-							ip = v.IP.String()
-						case *net.IPAddr:
-							ip = v.IP.String()
+						if ipv4Addr = addr.(*net.IPNet).IP.To4(); ipv4Addr != nil {
+							break
 						}
 					}
-					break
+					if ipv4Addr != nil {
+						ip = ipv4Addr.String()
+					} else {
+						ip = "127.0.0.1"
+					}
 				}
 			}
 		}
