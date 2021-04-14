@@ -6,11 +6,15 @@ APP_NAME := aws-mock-metadata
 
 include .env
 
+.PHONY = all setup test build junit-test check watch
+
+all: setup test build
+
 setup:
 	go get -v
 	go get -v -u github.com/githubnemo/CompileDaemon
-	go get -v -u github.com/alecthomas/gometalinter
-	gometalinter --install --update
+	#go get -v -u github.com/alecthomas/gometalinter
+	#gometalinter --install --update
 
 build: *.go
 	gofmt -w=true .
@@ -24,7 +28,7 @@ junit-test: build
 	go test -v | go-junit-report > test-report.xml
 
 check: build
-	gometalinter ./...
+	#gometalinter ./...
 
 watch:
 	CompileDaemon -color=true -build "make test"
