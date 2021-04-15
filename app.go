@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
@@ -10,6 +11,9 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/pflag"
 )
+
+var Version = "dev"
+var Program = "aws-mock-metadata"
 
 // App encapsulates all of the parameters necessary for starting up
 // an aws mock metadata server. These can either be set via command line or directly.
@@ -28,6 +32,7 @@ type App struct {
 	MockInstanceProfile   bool   `json:"mock-instance-profile"`
 	RoleArn               string `json:"role-arn"`
 	RoleName              string `json:"role-name"`
+	ShowVersion           bool
 	Verbose               bool   `json:"verbose"`
 	VpcID                 string `json:"vpc-id"`
 	NoSchemeHostRedirects bool   `json:"no-scheme-redirects"`
@@ -39,6 +44,10 @@ func main() {
 	app := &App{}
 	app.addFlags(pflag.CommandLine)
 	pflag.Parse()
+	if app.ShowVersion {
+		fmt.Printf("%s v%s\n", Program, Version)
+		os.Exit(0)
+	}
 	app.loadFromFile()
 	if app.Verbose {
 		log.SetLevel(log.DebugLevel)
@@ -73,6 +82,7 @@ func (app *App) addFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&app.MockInstanceProfile, "mock-instance-profile", false, "Use mocked IAM Instance Profile credentials (instead of STS generated credentials)")
 	fs.StringVar(&app.RoleArn, "role-arn", app.RoleArn, "IAM Role ARN")
 	fs.StringVar(&app.RoleName, "role-name", app.RoleName, "IAM Role Name")
+	fs.BoolVarP(&app.ShowVersion, "version", "v", false, "Show version and exit")
 	fs.BoolVar(&app.Verbose, "verbose", false, "Verbose")
 	fs.StringVar(&app.VpcID, "vpc-id", "vpc-unknown", "VPC ID")
 	fs.BoolVar(&app.NoSchemeHostRedirects, "no-scheme-host-redirects", app.NoSchemeHostRedirects, "Disable the scheme://host prefix in Location redirect headers")

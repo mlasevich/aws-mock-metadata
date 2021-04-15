@@ -1,4 +1,4 @@
-VERSION_VAR := main.VERSION
+VERSION_VAR := main.Version
 REPO_VERSION := $(shell git describe --always --dirty --tags)
 GOBUILD_VERSION_ARGS := -ldflags "-X $(VERSION_VAR)=$(REPO_VERSION)"
 GIT_HASH := $(shell git rev-parse --short HEAD)
