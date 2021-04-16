@@ -61,7 +61,7 @@ func (app *App) rootHandler(w http.ResponseWriter, r *http.Request) {
 
 func (app *App) trailingSlashRedirect(w http.ResponseWriter, r *http.Request) {
 	location := ""
-	if app.NoSchemeHostRedirects == false {
+	if !app.NoSchemeHostRedirects {
 		location = "http://169.254.169.254"
 	}
 	location = fmt.Sprintf("%s%s/", location, r.URL.String())

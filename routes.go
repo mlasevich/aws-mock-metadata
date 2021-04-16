@@ -70,10 +70,13 @@ func (app *App) versionSubRouter(router *mux.Router, version string) {
 		subRouterDef(app.addRoutesMetaData))
 
 	// Add 404 everywhere
-	router.Walk(func(route *mux.Route, subRouter *mux.Router, ancestors []*mux.Route) error {
+	err := router.Walk(func(route *mux.Route, subRouter *mux.Router, ancestors []*mux.Route) error {
 		subRouter.Handle("/{path:.*}", appHandler(app.notFoundHandler))
 		return nil
 	})
+	if err != nil {
+		println("error setting up routes")
+	}
 }
 
 // Wrapper for Router Definition Function

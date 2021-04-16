@@ -3,22 +3,23 @@ REPO_VERSION := $(shell git describe --always --dirty --tags)
 GOBUILD_VERSION_ARGS := -ldflags "-X $(VERSION_VAR)=$(REPO_VERSION)"
 GIT_HASH := $(shell git rev-parse --short HEAD)
 APP_NAME := aws-mock-metadata
+export PATH := $(shell go env GOPATH)/bin:$(PATH)
 
 include .env
 
-.PHONY = all setup test build junit-test check watch
+.PHONY: all setup test build junit-test check watch tools
 
-all: setup test build
+all: tools test build
 
 setup:
-	go get -v
-	go get -v -u github.com/githubnemo/CompileDaemon
-	#go get -v -u github.com/alecthomas/gometalinter
-	#gometalinter --install --update
+	@go get -v
 
-build: *.go
+build: tools *.go
 	gofmt -w=true .
 	go build -o bin/$(APP_NAME) $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(APP_NAME)
+
+tools: setup ## Install All tools
+	@cat tools.go | grep '_ "' | cut -d\" -f2 | xargs go get -v
 
 test: build
 	go test
@@ -28,9 +29,9 @@ junit-test: build
 	go test -v | go-junit-report > test-report.xml
 
 check: build
-	#gometalinter ./...
+	@golangci-lint run
 
-watch:
+watch: tools
 	CompileDaemon -color=true -build "make test"
 
 commit-hook:
