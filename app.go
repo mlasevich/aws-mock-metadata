@@ -86,7 +86,7 @@ func (app *App) addFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&app.Verbose, "verbose", false, "Verbose")
 	fs.StringVar(&app.VpcID, "vpc-id", "vpc-unknown", "VPC ID")
 	fs.BoolVar(&app.NoSchemeHostRedirects, "no-scheme-host-redirects", app.NoSchemeHostRedirects, "Disable the scheme://host prefix in Location redirect headers")
-	fs.StringVar(&app.ConfigFile, "config", "/etc/aws-metadata/metadata.json", "File to load configuration from")
+	fs.StringVar(&app.ConfigFile, "config", "/etc/aws-ec2-metadata/metadata.json", "File to load configuration from")
 }
 
 func (app *App) loadFromFile() {
