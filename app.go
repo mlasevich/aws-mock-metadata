@@ -18,18 +18,17 @@ var Program = "aws-mock-metadata"
 // App encapsulates all of the parameters necessary for starting up
 // an aws mock metadata server. These can either be set via command line or directly.
 type App struct {
-	AmiID            string `json:"ami-id"`
-	AvailabilityZone string `json:"availability-zone"`
-	AppInterface     string `json:"bind"`
-	AppPort          string `json:"port"`
-	Hostname         string `json:"hostname"`
-	InstanceID       string `json:"instance-id"`
-	AccountID        string `json:"account-id"`
-	InstanceType     string `json:"instance-type"`
-	MacAddress       string `json:"mac-address"`
-	PrivateIp        string `json:"private-ip"`
-	// If set, will return mocked credentials to the IAM instance profile instead of using STS to retrieve real credentials.
-	MockInstanceProfile   bool   `json:"mock-instance-profile"`
+	AmiID                 string `json:"ami-id"`
+	AvailabilityZone      string `json:"availability-zone"`
+	AppInterface          string `json:"bind"`
+	AppPort               string `json:"port"`
+	Hostname              string `json:"hostname"`
+	InstanceID            string `json:"instance-id"`
+	AccountID             string `json:"account-id"`
+	InstanceType          string `json:"instance-type"`
+	MacAddress            string `json:"mac-address"`
+	PrivateIp             string `json:"private-ip"`
+	MockInstanceProfile   bool   `json:"mock-instance-profile"` // If set, will return mocked credentials to the IAM instance profile instead of using STS to retrieve real credentials.
 	RoleArn               string `json:"role-arn"`
 	RoleName              string `json:"role-name"`
 	ShowVersion           bool

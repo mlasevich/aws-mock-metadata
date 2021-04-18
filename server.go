@@ -11,10 +11,10 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/gorilla/mux"
 )
+
+var stsManager STSManager = NewSTSManager()
 
 // StartServer starts a newly created http server
 func (app *App) StartServer() {
@@ -337,17 +337,6 @@ func (app *App) placementHandler(w http.ResponseWriter, r *http.Request) {
 `)
 }
 
-// Credentials represent the security credentials response
-type Credentials struct {
-	Code            string
-	LastUpdated     string
-	Type            string
-	AccessKeyID     string `json:"AccessKeyId"`
-	SecretAccessKey string
-	Token           string
-	Expiration      string
-}
-
 func (app *App) mockRoleHandler(w http.ResponseWriter, r *http.Request) {
 	// TODOLATER: round to nearest hour, to ensure test coverage passes more reliably?
 	now := time.Now().UTC()
@@ -364,30 +353,19 @@ func (app *App) mockRoleHandler(w http.ResponseWriter, r *http.Request) {
 }`, now.Format(format), expire.Format(format)))
 }
 
+// Handle Role Credential Request
 func (app *App) roleHandler(w http.ResponseWriter, r *http.Request) {
-	svc := sts.New(session.New(), &aws.Config{LogLevel: aws.LogLevel(2)})
-	resp, err := svc.AssumeRole(&sts.AssumeRoleInput{
-		RoleArn:         aws.String(app.RoleArn),
-		RoleSessionName: aws.String(app.Hostname),
-	})
+	credentials, err := stsManager.GetCredentials(
+		aws.String(app.RoleArn), aws.String(app.Hostname),
+	)
 	if err != nil {
-		log.Errorf("Error assuming role %+v", err)
+		log.Errorf("Error Getting credentials %+v", err)
 		http.Error(w, err.Error(), 500)
-		return
-	}
-	log.Debugf("STS response %+v", resp)
-	credentials := Credentials{
-		AccessKeyID:     *resp.Credentials.AccessKeyId,
-		Code:            "Success",
-		Expiration:      resp.Credentials.Expiration.Format("2006-01-02T15:04:05Z"),
-		LastUpdated:     time.Now().Format("2006-01-02T15:04:05Z"),
-		SecretAccessKey: *resp.Credentials.SecretAccessKey,
-		Token:           *resp.Credentials.SessionToken,
-		Type:            "AWS-HMAC",
-	}
-	if err := json.NewEncoder(w).Encode(credentials); err != nil {
-		log.Errorf("Error sending json %+v", err)
-		http.Error(w, err.Error(), 500)
+	} else {
+		if err := json.NewEncoder(w).Encode(credentials); err != nil {
+			log.Errorf("Error sending json %+v", err)
+			http.Error(w, err.Error(), 500)
+		}
 	}
 }
 
